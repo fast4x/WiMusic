@@ -1426,7 +1426,7 @@ fun AppearanceSettings(
                 },
             )
 
-        if (playerBackgroundColors == PlayerBackgroundColors.BlurredCoverColor) {
+        if ((playerBackgroundColors == PlayerBackgroundColors.BlurredCoverColor) && (playerType == PlayerType.Modern)) {
             if (search.input.isBlank() || stringResource(R.string.rotateAlbumCover).contains(
                     search.input,
                     true
