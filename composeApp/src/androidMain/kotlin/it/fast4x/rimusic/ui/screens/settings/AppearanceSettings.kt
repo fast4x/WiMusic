@@ -150,6 +150,7 @@ import it.fast4x.rimusic.utils.blurStrengthKey
 import it.fast4x.rimusic.utils.colorPaletteModeKey
 import it.fast4x.rimusic.utils.colorPaletteNameKey
 import it.fast4x.rimusic.utils.playerThumbnailSizeLKey
+import it.fast4x.rimusic.utils.rotateAlbumCoverKey
 import it.fast4x.rimusic.utils.semiBold
 import it.fast4x.rimusic.utils.thumbnailFadeExKey
 import it.fast4x.rimusic.utils.thumbnailFadeKey
@@ -570,6 +571,7 @@ fun AppearanceSettings(
         var thumbnailSpacing  by rememberPreference(thumbnailSpacingKey, 0f)
         var colorPaletteName by rememberPreference(colorPaletteNameKey, ColorPaletteName.Dynamic)
         var colorPaletteMode by rememberPreference(colorPaletteModeKey, ColorPaletteMode.Dark)
+        var rotateAlbumCover by rememberPreference(rotateAlbumCoverKey,false)
 
         if (appearanceChooser){
             AppearancePresetDialog(
@@ -1423,6 +1425,22 @@ fun AppearanceSettings(
                     }
                 },
             )
+
+        if (playerBackgroundColors == PlayerBackgroundColors.BlurredCoverColor) {
+            if (search.input.isBlank() || stringResource(R.string.rotateAlbumCover).contains(
+                    search.input,
+                    true
+                )
+            )
+                SwitchSettingEntry(
+                    title = stringResource(R.string.rotateAlbumCover),
+                    text = "",
+                    isChecked = rotateAlbumCover,
+                    onCheckedChange = { rotateAlbumCover = it },
+                    modifier = Modifier
+                      .padding(start = 25.dp)
+                )
+        }
 
         AnimatedVisibility(visible = playerBackgroundColors == PlayerBackgroundColors.AnimatedGradient) {
             if (search.input.isBlank() || stringResource(R.string.gradienttype).contains(
