@@ -402,9 +402,7 @@ class PlayerServiceModern : MediaLibraryService(),
                 addListener(this@PlayerServiceModern)
                 sleepTimer = SleepTimer(coroutineScope, this)
                 addListener(sleepTimer)
-                if(!isAtLeastAndroid12) { // there already is `MediaMetricsListener` for API >= 31
-                    addAnalyticsListener(PlaybackStatsListener(false, this@PlayerServiceModern))
-                }
+                addAnalyticsListener(PlaybackStatsListener(false, this@PlayerServiceModern))
             }
 
         // Force player to add all commands available, prior to android 13
@@ -451,8 +449,6 @@ class PlayerServiceModern : MediaLibraryService(),
                 .build()
 
         player.skipSilenceEnabled = preferences.getBoolean(skipSilenceKey, false)
-        player.addListener(this@PlayerServiceModern)
-        player.addAnalyticsListener(PlaybackStatsListener(false, this@PlayerServiceModern))
 
         player.repeatMode = preferences.getEnum(queueLoopTypeKey, QueueLoopType.Default).type
 
