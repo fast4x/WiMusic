@@ -192,7 +192,6 @@ import kotlinx.coroutines.withContext
 import it.fast4x.rimusic.appContext
 import it.fast4x.rimusic.utils.asMediaItem
 import it.fast4x.rimusic.utils.autoDownloadSongWhenLikedKey
-import it.fast4x.rimusic.utils.isAtLeastAndroid12
 import timber.log.Timber
 import java.io.IOException
 import java.io.ObjectInputStream
