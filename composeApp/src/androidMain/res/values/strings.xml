@@ -76,6 +76,8 @@
     <string name="max_size">Max size</string>
     <string name="database">Database</string>
     <string name="reset_quick_picks">Reset quick picks</string>
+    <string name="delete_duplicate_events">Delete duplicate Events</string>
+    <string name="delete_duplicate_events_description">Delete duplicate playback events. Will also decrease the listened time of affected songs.</string>
     <string name="quick_picks_are_cleared">Quick picks are cleared</string>
     <string name="backup">BACKUP</string>
     <string name="personal_preference">Personal preferences (i.e. the theme mode) and the cache are excluded.</string>
@@ -322,6 +324,7 @@
     <string name="do_you_really_want_to_renumbering_positions_in_this_playlist">Do you really want to renumbering positions in this playlist?</string>
     <string name="renumber_songs_positions">Renumber positions</string>
     <string name="do_you_really_want_to_delete_all_playback_events">Do you really want to delete all playback events?</string>
+    <string name="do_you_really_want_to_delete_all_duplicate_playback_events">Do you really want to delete all duplicate playback events?</string>
     <string name="lang_sinhala">Sinhala</string>
     <string name="update_available">Update available</string>
     <string name="actions_you_can_do">Actions you can do:</string>

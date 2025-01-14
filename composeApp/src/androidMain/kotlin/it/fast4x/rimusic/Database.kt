@@ -60,10 +60,18 @@ import it.fast4x.rimusic.models.SongPlaytime
 import it.fast4x.rimusic.models.SongWithContentLength
 import it.fast4x.rimusic.models.SortedSongPlaylistMap
 import it.fast4x.rimusic.service.LOCAL_KEY_PREFIX
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import org.intellij.lang.annotations.MagicConstant
+import timber.log.Timber
+import java.util.concurrent.CancellationException
 import kotlin.collections.sortedBy
+import kotlin.math.abs
 
 @Dao
 interface Database {
@@ -1797,6 +1805,9 @@ interface Database {
     @Query("UPDATE Song SET totalPlayTimeMs = totalPlayTimeMs + :addition WHERE id = :id")
     fun incrementTotalPlayTimeMs(id: String, addition: Long)
 
+    @Query("UPDATE Song SET totalPlayTimeMs = totalPlayTimeMs - :subtraction WHERE id = :id")
+    fun decrementTotalPlayTimeMs(id: String, subtraction: Long)
+
     @Transaction
     @Query("SELECT max(position) maxPos FROM SongPlaylistMap WHERE playlistId = :id")
     fun getSongMaxPositionToPlaylist(id: Long): Int
@@ -2294,6 +2305,41 @@ interface Database {
     @Query("DELETE FROM Event")
     fun clearEvents()
 
+    fun deleteDuplicateEvents() {
+        var eventsWithSongs: MutableList<EventWithSong>
+
+        val coroutineScope = CoroutineScope(Dispatchers.IO) + Job()
+
+        coroutineScope.launch(Dispatchers.IO) {
+            events().collect {
+                var eventsRemoved = 0
+                val thresholdMillis = 100
+                eventsWithSongs = it.toMutableList()
+
+                var index = 0
+                while(index < eventsWithSongs.lastIndex){
+                    val eventWithSong = eventsWithSongs[index]
+                    val otherIndex = index + 1
+                    if(eventsWithSongs[otherIndex].event.songId == eventWithSong.event.songId) {
+                        val event = eventWithSong.event
+                        val otherEvent = eventsWithSongs[otherIndex].event
+
+                        if (abs(event.timestamp - otherEvent.timestamp) < thresholdMillis) {
+                            val song = eventWithSong.song
+                            decrementTotalPlayTimeMs(song.id, abs(song.totalPlayTimeMs - event.playTime))
+                            delete(otherEvent)
+                            eventsWithSongs.removeAt(otherIndex)
+                            eventsRemoved++
+                        }
+                    }
+                    index++
+                }
+                Timber.d("removed ${eventsRemoved} event(s)")
+                throw CancellationException()
+            }
+        }
+    }
+
     @Query("DELETE FROM Event WHERE songId = :songId")
     fun clearEventsFor(songId: String)
 
@@ -2404,6 +2450,9 @@ interface Database {
 
     @Delete
     fun delete(song: Song)
+
+    @Delete
+    fun delete(event: Event)
 
     /**
      * Reset [Format.contentLength] of provided song.
