@@ -81,7 +81,6 @@ import it.fast4x.rimusic.utils.asMediaItem
 import it.fast4x.rimusic.utils.center
 import it.fast4x.rimusic.utils.color
 import it.fast4x.rimusic.utils.disableScrollingTextKey
-import it.fast4x.rimusic.utils.durationTextToMillis
 import it.fast4x.rimusic.utils.forcePlayAtIndex
 import it.fast4x.rimusic.utils.formatAsTime
 import it.fast4x.rimusic.utils.getDownloadState
@@ -102,6 +101,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import it.fast4x.rimusic.colorPalette
+import it.fast4x.rimusic.models.SongPlaytime
 import it.fast4x.rimusic.typography
 import timber.log.Timber
 import kotlin.time.Duration
@@ -150,7 +150,7 @@ fun StatisticsPage(
     val thumbnailSize = thumbnailSizeDp.px
 
     var songs by persistList<Song>("statistics/songs")
-    var allSongs by persistList<Song>("statistics/allsongs")
+    var allSongsPlaytime by persistList<SongPlaytime>("statistics/allSongsPlaytime")
     var artists by persistList<Artist>("statistics/artists")
     var albums by persistList<Album>("statistics/albums")
     var playlists by persistList<PlaylistPreview>("statistics/playlists")
@@ -183,13 +183,13 @@ fun StatisticsPage(
     )
 
     var totalPlayTimes = 0L
-    allSongs.forEach {
-        totalPlayTimes += it.totalPlayTimeMs
+    allSongsPlaytime.forEach {
+        totalPlayTimes += it.songPlayTime
     }
 
     if (showStatsListeningTime) {
         LaunchedEffect(Unit) {
-            Database.songsMostPlayedByPeriod(from, now).collect { allSongs = it }
+            Database.songsPlaytimeMostPlayedByPeriod(from, now).collect { allSongsPlaytime = it }
         }
     }
     LaunchedEffect(Unit) {
@@ -306,7 +306,7 @@ fun StatisticsPage(
                             ) {
                                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 8.dp)) {
                                     SettingsEntry(
-                                        title = "${allSongs.size} ${stringResource(R.string.statistics_songs_heard)}",
+                                        title = "${allSongsPlaytime.size} ${stringResource(R.string.statistics_songs_heard)}",
                                         text = "${formatAsTime(totalPlayTimes)} ${stringResource(R.string.statistics_of_time_taken)}",
                                         onClick = {},
                                         trailingContent = {

@@ -448,8 +448,6 @@ class PlayerServiceModern : MediaLibraryService(),
                 .build()
 
         player.skipSilenceEnabled = preferences.getBoolean(skipSilenceKey, false)
-        player.addListener(this@PlayerServiceModern)
-        player.addAnalyticsListener(PlaybackStatsListener(false, this@PlayerServiceModern))
 
         player.repeatMode = preferences.getEnum(queueLoopTypeKey, QueueLoopType.Default).type
 

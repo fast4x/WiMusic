@@ -65,11 +65,20 @@ fun  QuickPicsSettings() {
         Database.eventsCount().distinctUntilChanged()
     }.collectAsState(initial = 0)
     var clearEvents by remember { mutableStateOf(false) }
+    var deleteDuplicateEvents by remember { mutableStateOf(false) }
     if (clearEvents) {
         ConfirmationDialog(
             text = stringResource(R.string.do_you_really_want_to_delete_all_playback_events),
             onDismiss = { clearEvents = false },
             onConfirm = { Database.asyncTransaction( Database::clearEvents ) }
+        )
+    }
+
+    if (deleteDuplicateEvents) {
+        ConfirmationDialog(
+            text = stringResource(R.string.do_you_really_want_to_delete_all_duplicate_playback_events),
+            onDismiss = { deleteDuplicateEvents = false },
+            onConfirm = { Database.asyncTransaction( Database::deleteDuplicateEvents ) }
         )
     }
 
@@ -258,6 +267,18 @@ fun  QuickPicsSettings() {
             isEnabled = eventsCount > 0,
             onClick = { clearEvents = true }
         )
+
+        SettingsEntry(
+            title = stringResource(R.string.delete_duplicate_events),
+            text = if (eventsCount > 0) {
+                stringResource(R.string.delete_duplicate_events_description)
+            } else {
+                stringResource(R.string.quick_picks_are_cleared)
+            },
+            isEnabled = eventsCount > 0,
+            onClick = { deleteDuplicateEvents = true }
+        )
+
         SettingsGroupSpacer(
             modifier = Modifier.height(Dimensions.bottomSpacer)
         )
