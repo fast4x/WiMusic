@@ -58,8 +58,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.LinearGradientShader
@@ -160,10 +162,16 @@ import it.fast4x.rimusic.thumbnailShape
 import it.fast4x.rimusic.typography
 import it.fast4x.rimusic.ui.components.themed.LyricsSizeDialog
 import it.fast4x.rimusic.utils.conditional
+import it.fast4x.rimusic.utils.effectRotationKey
+import it.fast4x.rimusic.utils.jumpPreviousKey
+import it.fast4x.rimusic.utils.landscapeControlsKey
 import it.fast4x.rimusic.utils.lyricsSizeAnimateKey
 import it.fast4x.rimusic.utils.lyricsSizeKey
 import it.fast4x.rimusic.utils.lyricsSizeLKey
+import it.fast4x.rimusic.utils.playNext
+import it.fast4x.rimusic.utils.playPrevious
 import timber.log.Timber
+import kotlin.Float.Companion.POSITIVE_INFINITY
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -350,6 +358,14 @@ fun Lyrics(
             mutableStateOf(false)
         }
         val lightTheme = colorPaletteMode == ColorPaletteMode.Light || (colorPaletteMode == ColorPaletteMode.System && (!isSystemInDarkTheme()))
+        val effectRotationEnabled by rememberPreference(effectRotationKey, true)
+        var landscapeControls by rememberPreference(landscapeControlsKey, true)
+        var jumpPrevious by rememberPreference(jumpPreviousKey,"3")
+        var isRotated by rememberSaveable { mutableStateOf(false) }
+        val rotationAngle by animateFloatAsState(
+            targetValue = if (isRotated) 360F else 0f,
+            animationSpec = tween(durationMillis = 200), label = ""
+        )
 
         if (showLyricsSizeDialog) {
             LyricsSizeDialog(
@@ -1764,6 +1780,95 @@ fun Lyrics(
                             .size(24.dp)
                     )
             }
+            if (!showlyricsthumbnail && isDisplayed && isLandscape && landscapeControls) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color.Transparent,if (lightTheme) Color.White.copy(0.5f) else Color.Black.copy(0.5f)),
+                                startY = 0f,
+                                endY = POSITIVE_INFINITY
+                            ),
+                        )
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 10.dp)
+                ){
+                    Image(
+                        painter = painterResource(R.drawable.play_skip_back),
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(colorPalette().text),
+                        modifier = Modifier
+                            .clickable(
+                                indication = ripple(bounded = false),
+                                interactionSource = remember { MutableInteractionSource() },
+                                onClick = {
+                                    if (jumpPrevious == "") jumpPrevious = "0"
+                                    if(binder?.player?.hasPreviousMediaItem() == false || (jumpPrevious != "0" && (binder?.player?.currentPosition ?: 0) > jumpPrevious.toInt() * 1000)
+                                    ){
+                                        binder?.player?.seekTo(0)
+                                    }
+                                    else binder?.player?.playPrevious()
+                                    if (effectRotationEnabled) isRotated = !isRotated
+                                }
+                            )
+                            .rotate(rotationAngle)
+                            .padding(horizontal = 15.dp)
+                            .size(30.dp)
+
+                    )
+                    Box {
+                        Box(modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(45.dp)
+                            .background(colorPalette().accent, RoundedCornerShape(15.dp))
+                        ){}
+                        Image(
+                            painter = painterResource(if (binder?.player?.isPlaying == true) R.drawable.pause else R.drawable.play),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(colorPalette().text),
+                            modifier = Modifier
+                                .clickable(
+                                    indication = ripple(bounded = false),
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    onClick = {
+                                        if (binder?.player?.isPlaying == true) {
+                                            binder.callPause({})
+                                        } else {
+                                            binder?.player?.play()
+                                        }
+                                    },
+                                )
+                                .align(Alignment.Center)
+                                .rotate(rotationAngle)
+                                .padding(horizontal = 15.dp)
+                                .size(36.dp)
+
+                        )
+                    }
+                    Image(
+                        painter = painterResource(R.drawable.play_skip_forward),
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(colorPalette().text),
+                        modifier = Modifier
+                            .clickable(
+                                indication = ripple(bounded = false),
+                                interactionSource = remember { MutableInteractionSource() },
+                                onClick = {
+                                    binder?.player?.playNext()
+                                    if (effectRotationEnabled) isRotated = !isRotated
+                                }
+                            )
+                            .rotate(rotationAngle)
+                            .padding(horizontal = 15.dp)
+                            .size(30.dp)
+
+                    )
+                }
+
+            }
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -1800,6 +1905,17 @@ fun Lyrics(
                             onClick = {
                                 menuState.display {
                                     Menu {
+                                        if (isLandscape && !showlyricsthumbnail){
+                                            MenuEntry(
+                                                icon = if (landscapeControls) R.drawable.checkmark else R.drawable.play,
+                                                text = stringResource(R.string.toggle_controls_landscape),
+                                                enabled = true,
+                                                onClick = {
+                                                    menuState.hide()
+                                                    landscapeControls = !landscapeControls
+                                                }
+                                            )
+                                        }
                                         MenuEntry(
                                             icon = R.drawable.text,
                                             enabled = true,

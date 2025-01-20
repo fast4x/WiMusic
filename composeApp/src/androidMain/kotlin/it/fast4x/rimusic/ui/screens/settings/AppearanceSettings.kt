@@ -1591,19 +1591,18 @@ fun AppearanceSettings(
                 isChecked = disableScrollingText,
                 onCheckedChange = { disableScrollingText = it }
             )
-        if (playerType == PlayerType.Essential) {
-            if (search.input.isBlank() || stringResource(R.string.disable_horizontal_swipe).contains(
-                    search.input,
-                    true
-                )
+
+        if (search.input.isBlank() || stringResource(if (playerType == PlayerType.Modern && !isLandscape) R.string.disable_horizontal_swipe else R.string.disable_vertical_swipe).contains(
+                search.input,
+                true
             )
-                SwitchSettingEntry(
-                    title = stringResource(R.string.disable_horizontal_swipe),
-                    text = stringResource(R.string.disable_song_switching_via_swipe),
-                    isChecked = disablePlayerHorizontalSwipe,
-                    onCheckedChange = { disablePlayerHorizontalSwipe = it }
-                )
-        }
+        )
+            SwitchSettingEntry(
+                title = stringResource(if (playerType == PlayerType.Modern && !isLandscape) R.string.disable_vertical_swipe else R.string.disable_horizontal_swipe),
+                text = stringResource(if (playerType == PlayerType.Modern && !isLandscape) R.string.disable_vertical_swipe_secondary else R.string.disable_song_switching_via_swipe),
+                isChecked = disablePlayerHorizontalSwipe,
+                onCheckedChange = { disablePlayerHorizontalSwipe = it }
+            )
 
         if (search.input.isBlank() || stringResource(R.string.player_rotating_buttons).contains(
                 search.input,

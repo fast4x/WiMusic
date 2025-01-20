@@ -79,6 +79,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -132,6 +133,7 @@ import it.fast4x.rimusic.utils.thumbnailSpacingKey
 import kotlinx.coroutines.delay
 import it.fast4x.rimusic.colorPalette
 import it.fast4x.rimusic.typography
+import it.fast4x.rimusic.ui.styling.ColorPalette
 import it.fast4x.rimusic.utils.lyricsSizeKey
 import it.fast4x.rimusic.utils.lyricsSizeLKey
 import it.fast4x.rimusic.utils.thumbnailFadeExKey
@@ -1737,6 +1739,42 @@ fun LyricsSizeDialog(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun InProgressDialog(
+    total : Int,
+    done : Int,
+    text : String
+) {
+    DefaultDialog(
+        onDismiss = {},
+        modifier = Modifier
+            .fillMaxWidth(if (isLandscape) 0.3f else 0.8f)
+    ) {
+        BasicText(
+            text = text,
+            style = TextStyle(
+                textAlign = TextAlign.Center,
+                fontSize = typography().l.bold.fontSize,
+                fontWeight = typography().l.bold.fontWeight,
+                color = colorPalette().text
+            ),
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(modifier = Modifier
+            .height(10.dp)
+        )
+        BasicText(
+            text = "$done / $total",
+            style = TextStyle(
+                textAlign = TextAlign.Center,
+                fontStyle = typography().xs.semiBold.fontStyle,
+                color = colorPalette().text
+            ),
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

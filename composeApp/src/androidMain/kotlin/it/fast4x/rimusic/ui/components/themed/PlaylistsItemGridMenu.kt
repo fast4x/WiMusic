@@ -75,6 +75,7 @@ fun PlaylistsItemGridMenu(
     playlist: PlaylistPreview? = null,
     modifier: Modifier = Modifier,
     onPlayNext: (() -> Unit)? = null,
+    onDeleteSongsNotInLibrary: (() -> Unit)? = null,
     onEnqueue: (() -> Unit)? = null,
     onImportOnlinePlaylist: (() -> Unit)? = null,
     onAddToPreferites: (() -> Unit)? = null,
@@ -349,6 +350,19 @@ fun PlaylistsItemGridMenu(
                         onClick = {
                             onDismiss()
                             onPlayNext()
+                        }
+                    )
+                }
+
+                onDeleteSongsNotInLibrary?.let { onDeleteSongsNotInLibrary ->
+                    GridMenuItem(
+                        icon = R.drawable.trash,
+                        title = R.string.delete_songs_not_in_library,
+                        colorIcon = colorPalette.text,
+                        colorText = colorPalette.text,
+                        onClick = {
+                            onDismiss()
+                            onDeleteSongsNotInLibrary()
                         }
                     )
                 }

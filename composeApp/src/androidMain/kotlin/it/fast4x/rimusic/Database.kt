@@ -1341,6 +1341,9 @@ interface Database {
     @Query("SELECT likedAt FROM Song WHERE id = :songId")
     fun likedAt(songId: String): Flow<Long?>
 
+    @Query("SELECT likedAt FROM Song WHERE id = :songId")
+    fun getLikedAt(songId: String): Long?
+
     @Query("UPDATE Album SET bookmarkedAt = :bookmarkedAt WHERE id = :id")
     fun bookmarkAlbum(id: String, bookmarkedAt: Long?): Int
 
@@ -2066,6 +2069,10 @@ interface Database {
     @Transaction
     @Query("SELECT SP.position FROM Song S INNER JOIN songplaylistmap SP ON S.id=SP.songId WHERE SP.playlistId=:id AND S.id NOT LIKE '$LOCAL_KEY_PREFIX%' ORDER BY SP.position")
     fun songsPlaylistMap(id: Long): Flow<List<Int>>
+
+    @Transaction
+    @Query("SELECT id FROM SONG WHERE likedAt IS NOT NULL AND likedAt < 0")
+    fun dislikedSongsById(): Flow<List<String>>
 
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Transaction

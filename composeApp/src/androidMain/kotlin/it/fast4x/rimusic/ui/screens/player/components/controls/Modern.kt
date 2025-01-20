@@ -1,6 +1,8 @@
 package it.fast4x.rimusic.ui.screens.player.components.controls
 
 import android.os.Build
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.basicMarquee
@@ -390,12 +392,15 @@ fun ControlsModern(
     playbackSpeed: Float,
     shouldBePlaying: Boolean,
     playerPlayButtonType: PlayerPlayButtonType,
-    rotationAngle: Float,
     isGradientBackgroundEnabled: Boolean,
     onShowSpeedPlayerDialog: () -> Unit,
 ) {
     var effectRotationEnabled by rememberPreference(effectRotationKey, true)
     var isRotated by rememberSaveable { mutableStateOf(false) }
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (isRotated) 360F else 0f,
+        animationSpec = tween(durationMillis = 200), label = ""
+    )
     var jumpPrevious by rememberPreference(jumpPreviousKey, "3")
 
   if (playerPlayButtonType != PlayerPlayButtonType.Disabled) {
@@ -464,7 +469,8 @@ fun ControlsModern(
                       modifier = Modifier
                           .offset(x = (0).dp, y = (0).dp)
                           .blur(7.dp)
-                          .size(115.dp),
+                          .size(115.dp)
+                          .rotate(rotationAngle),
                       tint = Color.Black.copy(0.75f)
                   )
               }
@@ -627,7 +633,8 @@ fun ControlsModern(
                   modifier = Modifier
                       .offset(x = (8).dp, y = (8).dp)
                       .blur(4.dp)
-                      .size(38.dp),
+                      .size(38.dp)
+                      .rotate(rotationAngle),
                   tint = Color.Black
               )
               Image(
@@ -664,7 +671,8 @@ fun ControlsModern(
                   modifier = Modifier
                       .offset(x = (0).dp, y = (0).dp)
                       .blur(7.dp)
-                      .size(54.dp),
+                      .size(54.dp)
+                      .rotate(rotationAngle),
                   tint = Color.Black
               )
               Image(
@@ -708,7 +716,8 @@ fun ControlsModern(
                   modifier = Modifier
                       .offset(x = (8).dp, y = (8).dp)
                       .blur(4.dp)
-                      .size(38.dp),
+                      .size(38.dp)
+                      .rotate(rotationAngle),
                   tint = Color.Black
               )
               Image(

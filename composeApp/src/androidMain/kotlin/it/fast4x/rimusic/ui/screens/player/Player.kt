@@ -228,6 +228,7 @@ import it.fast4x.rimusic.utils.horizontalFadingEdge
 import it.fast4x.rimusic.utils.isDownloadedSong
 import it.fast4x.rimusic.utils.isExplicit
 import it.fast4x.rimusic.utils.isLandscape
+import it.fast4x.rimusic.utils.jumpPreviousKey
 import it.fast4x.rimusic.utils.manageDownload
 import it.fast4x.rimusic.utils.mediaItems
 import it.fast4x.rimusic.utils.miniQueueExpandedKey
@@ -954,6 +955,15 @@ fun Player(
     var tempGradient by remember{ mutableStateOf(AnimatedGradient.Linear) }
     var albumCoverRotation by rememberPreference(albumCoverRotationKey, false)
 
+    @Composable
+    fun Modifier.conditional(condition : Boolean, modifier : @Composable Modifier.() -> Modifier) : Modifier {
+        return if (condition) {
+            then(modifier(Modifier))
+        } else {
+            this
+        }
+    }
+
     if (animatedGradient == AnimatedGradient.Random){
         LaunchedEffect(mediaItem.mediaId){
             valueGrad = (2..13).random()
@@ -1086,20 +1096,22 @@ fun Player(
                         .onSizeChanged {
                             sizeShader = Size(it.width.toFloat(), it.height.toFloat())
                         }
-                        .shaderBackground(
-                            MeshGradient(
-                                arrayOf(
-                                    saturate(vibrant).darkenBy(),
-                                    saturate(lightVibrant).darkenBy(),
-                                    saturate(darkVibrant).darkenBy(),
-                                    saturate(muted).darkenBy(),
-                                    saturate(lightMuted).darkenBy(),
-                                    saturate(darkMuted).darkenBy(),
-                                    saturate(dominant).darkenBy()
-                                ),
-                                scale = 1f
+                        .conditional(!appRunningInBackground) {
+                            shaderBackground(
+                                MeshGradient(
+                                    arrayOf(
+                                        saturate(vibrant).darkenBy(),
+                                        saturate(lightVibrant).darkenBy(),
+                                        saturate(darkVibrant).darkenBy(),
+                                        saturate(muted).darkenBy(),
+                                        saturate(lightMuted).darkenBy(),
+                                        saturate(darkMuted).darkenBy(),
+                                        saturate(dominant).darkenBy()
+                                    ),
+                                    scale = 1f
+                                )
                             )
-                        )
+                        }
                 }
                 else if ((animatedGradient == AnimatedGradient.Random && tempGradient == gradients[4]) || animatedGradient == AnimatedGradient.MesmerizingLens){
                     containerModifier = containerModifier
@@ -1318,14 +1330,6 @@ fun Player(
         )
     }
     val textoutline by rememberPreference(textoutlineKey, false)
-
-    fun Modifier.conditional(condition : Boolean, modifier : Modifier.() -> Modifier) : Modifier {
-        return if (condition) {
-            then(modifier(Modifier))
-        } else {
-            this
-        }
-    }
 
     var songPlaylist by remember {
         mutableStateOf(0)
@@ -2166,29 +2170,8 @@ fun Player(
                         modifier = Modifier
                             .weight(1f)
                             .navigationBarsPadding()
-                            .pointerInput(Unit) {
-                                detectHorizontalDragGestures(
-                                    onHorizontalDrag = { change, dragAmount ->
-                                        deltaX = dragAmount
-                                    },
-                                    onDragStart = {
-                                    },
-                                    onDragEnd = {
-                                        if (!disablePlayerHorizontalSwipe) {
-                                            if (deltaX > 5) {
-                                                binder.player.playPrevious()
-                                            } else if (deltaX < -5) {
-                                                binder.player.playNext()
-                                            }
-
-                                        }
-
-                                    }
-
-                                )
-                            }
                     ){
-                        if (!showlyricsthumbnail)
+                        if (!showlyricsthumbnail) {
                             Lyrics(
                                 mediaId = mediaItem.mediaId,
                                 isDisplayed = isShowingLyrics,
@@ -2201,7 +2184,30 @@ fun Player(
                                 durationProvider = player::getDuration,
                                 isLandscape = isLandscape,
                                 clickLyricsText = clickLyricsText,
+                                modifier = Modifier
+                                    .pointerInput(Unit) {
+                                        detectHorizontalDragGestures(
+                                            onHorizontalDrag = { change, dragAmount ->
+                                                deltaX = dragAmount
+                                            },
+                                            onDragStart = {
+                                            },
+                                            onDragEnd = {
+                                                if (!disablePlayerHorizontalSwipe) {
+                                                    if (deltaX > 5) {
+                                                        binder.player.playPrevious()
+                                                    } else if (deltaX < -5) {
+                                                        binder.player.playNext()
+                                                    }
+
+                                                }
+
+                                            }
+
+                                        )
+                                    }
                             )
+                        }
                     }
                 }
                 Column (
@@ -2220,7 +2226,7 @@ fun Player(
                              if (showthumbnail) {
                                  if (!isShowingVisualizer) {
                                      val fling = PagerDefaults.flingBehavior(state = pagerState,snapPositionalThreshold = 0.25f)
-                                     val pageSpacing = thumbnailSpacing.toInt()*0.01*(screenWidth) - (2.5*playerThumbnailSize.size.dp)
+                                     val pageSpacing = thumbnailSpacingL.toInt()*0.01*(screenWidth) - (2.5*playerThumbnailSizeL.size.dp)
 
                                      LaunchedEffect(pagerState, binder.player.currentMediaItemIndex) {
                                          if (appRunningInBackground || isShowingLyrics) {
@@ -2246,6 +2252,7 @@ fun Player(
                                          contentPadding = PaddingValues(start = ((maxWidth - maxHeight)/2).coerceAtLeast(0.dp), end = ((maxWidth - maxHeight)/2 + if (pageSpacing < 0.dp) (-(pageSpacing)) else 0.dp).coerceAtLeast(0.dp)),
                                          beyondViewportPageCount = 3,
                                          flingBehavior = fling,
+                                         userScrollEnabled = !disablePlayerHorizontalSwipe,
                                          modifier = Modifier
                                              .padding(
                                                  all = (if (thumbnailType == ThumbnailType.Modern) -(10.dp) else 0.dp).coerceAtLeast(
@@ -2832,6 +2839,7 @@ fun Player(
                                      pageSpacing = if (expandedplayer) (thumbnailSpacing.toInt()*0.01*(screenHeight) - if (carousel) (3*carouselSize.size.dp) else (2*carouselSize.size.dp)) else 10.dp,
                                      beyondViewportPageCount = 2,
                                      flingBehavior = fling,
+                                     userScrollEnabled = expandedplayer || !disablePlayerHorizontalSwipe,
                                      modifier = modifier
                                          .padding(
                                              all = (if (expandedplayer) 0.dp else if (thumbnailType == ThumbnailType.Modern) -(10.dp) else 0.dp).coerceAtLeast(

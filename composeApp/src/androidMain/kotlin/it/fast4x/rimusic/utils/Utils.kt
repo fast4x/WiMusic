@@ -24,8 +24,11 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.UserAgent
 import it.fast4x.innertube.Innertube
 import it.fast4x.innertube.models.bodies.ContinuationBody
+import it.fast4x.innertube.models.bodies.SearchBody
 import it.fast4x.innertube.requests.playlistPage
+import it.fast4x.innertube.requests.searchPage
 import it.fast4x.innertube.utils.ProxyPreferences
+import it.fast4x.innertube.utils.from
 import it.fast4x.innertube.utils.getProxy
 import it.fast4x.rimusic.Database
 import it.fast4x.rimusic.EXPLICIT_PREFIX
@@ -33,6 +36,7 @@ import it.fast4x.rimusic.cleanPrefix
 import it.fast4x.rimusic.models.Album
 import it.fast4x.rimusic.models.Song
 import it.fast4x.rimusic.models.SongEntity
+import it.fast4x.rimusic.models.SongPlaylistMap
 import it.fast4x.rimusic.service.LOCAL_KEY_PREFIX
 import it.fast4x.rimusic.service.isLocal
 import it.fast4x.rimusic.ui.components.themed.NewVersionDialog
@@ -620,6 +624,58 @@ fun Modifier.conditional(condition : Boolean, modifier : Modifier.() -> Modifier
         then(modifier(Modifier))
     } else {
         this
+    }
+}
+
+suspend fun getAlbumVersionFromVideo(song: Song,playlistId : Long, position : Int){
+    val explicit = if (song.asMediaItem.isExplicit) "explicit" else ""
+    fun filteredText(text : String): String{
+        val filteredText = text
+            .lowercase()
+            .replace("(", " ")
+            .replace(")", " ")
+            .replace("lyrics", "")
+            .replace("vevo", "")
+            .replace(" hd", "")
+            .replace("official video", "")
+            .replace(Regex("\\s+"), " ")
+            .filter {it.isLetterOrDigit() || it.isWhitespace() || it == '\'' || it == ',' }
+        return filteredText
+    }
+
+    val searchQuery = Innertube.searchPage(
+        body = SearchBody(
+            query = filteredText("${cleanPrefix(song.title)} ${song.artistsText} $explicit"),
+            params = Innertube.SearchFilter.Song.value
+        ),
+        fromMusicShelfRendererContent = Innertube.SongItem.Companion::from
+    )
+
+    val searchResults = searchQuery?.getOrNull()?.items
+    val requiredSong = searchResults?.get(0)
+
+    val sourceSongWords = filteredText(cleanPrefix(song.title))
+        .split(" ").filter { it.isNotEmpty() }
+    val requiredSongWords = filteredText(cleanPrefix(requiredSong?.title ?: ""))
+        .split(" ").filter { it.isNotEmpty() }
+
+    val songMatched = (requiredSong != null) && (requiredSongWords.any { it in sourceSongWords })
+    Database.asyncTransaction {
+        if (songMatched) {
+            deleteSongFromPlaylist(song.id, playlistId)
+            if (requiredSong != null) {
+                Database.insert(requiredSong.asSong)
+            }
+            if (requiredSong != null) {
+                insert(
+                    SongPlaylistMap(
+                        songId = requiredSong.asMediaItem.mediaId,
+                        playlistId = playlistId,
+                        position = position
+                    )
+                )
+            }
+        }
     }
 }
 

@@ -2,6 +2,7 @@ package it.fast4x.rimusic.ui.screens.player.components.controls
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -392,7 +393,6 @@ fun ControlsEssential(
     likedAt: Long?,
     mediaId: String,
     playerPlayButtonType: PlayerPlayButtonType,
-    rotationAngle: Float,
     isGradientBackgroundEnabled: Boolean,
     onShowSpeedPlayerDialog: () -> Unit,
 ) {
@@ -400,6 +400,10 @@ fun ControlsEssential(
     val colorPaletteMode by rememberPreference(colorPaletteModeKey, ColorPaletteMode.Dark)
     var effectRotationEnabled by rememberPreference(effectRotationKey, true)
     var isRotated by rememberSaveable { mutableStateOf(false) }
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (isRotated) 360F else 0f,
+        animationSpec = tween(durationMillis = 200), label = ""
+    )
     val shouldBePlayingTransition = updateTransition(shouldBePlaying, label = "shouldBePlaying")
     val playPauseRoundness by shouldBePlayingTransition.animateDp(
         transitionSpec = { tween(durationMillis = 100, easing = LinearEasing) },

@@ -347,6 +347,7 @@ const val ytAccountNameKey = "ytAccountName"
 const val ytAccountEmailKey = "ytAccountEmail"
 const val albumCoverRotationKey = "albumCoverRotation"
 const val isConnectionMeteredEnabledKey = "isConnectionMeteredEnabled"
+const val landscapeControlsKey = "landscapeControls"
 
 /*
 @PublishedApi

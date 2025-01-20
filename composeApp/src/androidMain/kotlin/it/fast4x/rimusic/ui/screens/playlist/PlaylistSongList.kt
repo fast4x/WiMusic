@@ -141,6 +141,7 @@ import it.fast4x.rimusic.models.Song
 import it.fast4x.rimusic.typography
 import it.fast4x.rimusic.ui.screens.settings.isYouTubeSyncEnabled
 import it.fast4x.rimusic.utils.setLikeState
+import kotlinx.coroutines.flow.filterNotNull
 import timber.log.Timber
 
 
@@ -238,6 +239,13 @@ fun PlaylistSongList(
     playlistPage?.songs?.forEach {
         totalPlayTimes += it.durationText?.let { it1 ->
             durationTextToMillis(it1) }?.toLong() ?: 0
+    }
+
+    var dislikedSongs by persistList<String>("")
+
+    LaunchedEffect(Unit) {
+        Database.dislikedSongsById().filterNotNull()
+            .collect { dislikedSongs = it }
     }
 
     if (isImportingPlaylist) {
@@ -427,20 +435,24 @@ fun PlaylistSongList(
                                     .padding(horizontal = 5.dp)
                                     .combinedClickable(
                                         onClick = {
-                                            downloadState = Download.STATE_DOWNLOADING
-                                            if (playlistPage?.songs?.isNotEmpty() == true)
-                                                playlistPage?.songs?.forEach {
-                                                    binder?.cache?.removeResource(it.asMediaItem.mediaId)
-                                                    CoroutineScope(Dispatchers.IO).launch {
-                                                        Database.deleteFormat( it.asMediaItem.mediaId )
-                                                    }
-                                                    manageDownload(
-                                                        context = context,
-                                                        mediaItem = it.asMediaItem,
-                                                        downloadState = false
-                                                    )
-                                                }
-                                        },
+                                            if (playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true) {
+                                                downloadState = Download.STATE_DOWNLOADING
+                                                if (playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true)
+                                                    playlistPage?.songs?.filter{ it.asMediaItem.mediaId !in dislikedSongs }?.forEach {
+                                                        binder?.cache?.removeResource(it.asMediaItem.mediaId)
+                                                        CoroutineScope(Dispatchers.IO).launch {
+                                                            Database.deleteFormat(it.asMediaItem.mediaId)
+                                                        }
+                                                        manageDownload(
+                                                            context = context,
+                                                            mediaItem = it.asMediaItem,
+                                                            downloadState = false
+                                                        )
+                                                    } else {
+                                                SmartMessage(context.resources.getString(R.string.disliked_this_collection),type = PopupType.Error, context = context)
+                                            }
+                                        }
+                                            },
                                         onLongClick = {
                                             SmartMessage(context.resources.getString(R.string.info_download_all_songs), context = context)
                                         }
@@ -455,19 +467,27 @@ fun PlaylistSongList(
                                     .padding(horizontal = 5.dp)
                                     .combinedClickable(
                                         onClick = {
-                                            downloadState = Download.STATE_DOWNLOADING
-                                            if (playlistPage?.songs?.isNotEmpty() == true)
-                                                playlistPage?.songs?.forEach {
-                                                    binder?.cache?.removeResource(it.asMediaItem.mediaId)
-                                                    CoroutineScope(Dispatchers.IO).launch {
-                                                        Database.deleteFormat( it.asMediaItem.mediaId )
-                                                    }
-                                                    manageDownload(
-                                                        context = context,
-                                                        mediaItem = it.asMediaItem,
-                                                        downloadState = true
+                                            if (playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true) {
+                                                downloadState = Download.STATE_DOWNLOADING
+                                                if (playlistPage?.songs?.isNotEmpty() == true)
+                                                    playlistPage?.songs?.forEach {
+                                                        binder?.cache?.removeResource(it.asMediaItem.mediaId)
+                                                        CoroutineScope(Dispatchers.IO).launch {
+                                                            Database.deleteFormat(it.asMediaItem.mediaId)
+                                                        }
+                                                        manageDownload(
+                                                            context = context,
+                                                            mediaItem = it.asMediaItem,
+                                                            downloadState = true
+                                                        )
+                                                    } else {
+                                                    SmartMessage(
+                                                        context.resources.getString(R.string.disliked_this_collection),
+                                                        type = PopupType.Error,
+                                                        context = context
                                                     )
                                                 }
+                                            }
                                         },
                                         onLongClick = {
                                             SmartMessage(context.resources.getString(R.string.info_remove_all_downloaded_songs), context = context)
@@ -479,15 +499,21 @@ fun PlaylistSongList(
 
                             HeaderIconButton(
                                 icon = R.drawable.enqueue,
-                                enabled = playlistPage?.songs?.isNotEmpty() == true,
-                                color =  if (playlistPage?.songs?.isNotEmpty() == true) colorPalette().text else colorPalette().textDisabled,
+                                enabled = playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true,
+                                color =  if (playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true) colorPalette().text else colorPalette().textDisabled,
                                 onClick = {},
                                 modifier = Modifier
                                     .padding(horizontal = 5.dp)
                                     .combinedClickable(
                                         onClick = {
-                                            playlistPage?.songs?.map(Innertube.SongItem::asMediaItem)?.let { mediaItems ->
-                                                binder?.player?.enqueue(mediaItems, context)
+                                            if (playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true) {
+                                                playlistPage?.songs?.filter { it.asMediaItem.mediaId !in dislikedSongs }
+                                                    ?.map(Innertube.SongItem::asMediaItem)
+                                                    ?.let { mediaItems ->
+                                                        binder?.player?.enqueue(mediaItems, context)
+                                                    }
+                                            } else {
+                                                SmartMessage(context.resources.getString(R.string.disliked_this_collection),type = PopupType.Error, context = context)
                                             }
                                         },
                                         onLongClick = {
@@ -498,21 +524,23 @@ fun PlaylistSongList(
 
                             HeaderIconButton(
                                 icon = R.drawable.shuffle,
-                                enabled = playlistPage?.songs?.isNotEmpty() == true,
-                                color = if (playlistPage?.songs?.isNotEmpty() ==true) colorPalette().text else colorPalette().textDisabled,
+                                enabled = playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true,
+                                color = if (playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true) colorPalette().text else colorPalette().textDisabled,
                                 onClick = {},
                                 modifier = Modifier
                                     .padding(horizontal = 5.dp)
                                     .combinedClickable(
                                         onClick = {
-                                            if (playlistPage?.songs?.isNotEmpty() == true) {
+                                            if (playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true) {
                                                 binder?.stopRadio()
-                                                playlistPage?.songs?.shuffled()?.map(Innertube.SongItem::asMediaItem)
+                                                playlistPage?.songs?.filter{ it.asMediaItem.mediaId !in dislikedSongs }?.shuffled()?.map(Innertube.SongItem::asMediaItem)
                                                     ?.let {
                                                         binder?.player?.forcePlayFromBeginning(
                                                             it
                                                         )
                                                     }
+                                            } else {
+                                                SmartMessage(context.resources.getString(R.string.disliked_this_collection),type = PopupType.Error, context = context)
                                             }
                                         },
                                         onLongClick = {
@@ -523,24 +551,25 @@ fun PlaylistSongList(
 
                             HeaderIconButton(
                                 icon = R.drawable.radio,
-                                enabled = playlistPage?.songs?.isNotEmpty() == true,
-                                color = colorPalette().text,
+                                enabled = playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true,
+                                color = if (playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true) colorPalette().text else colorPalette().textDisabled,
                                 onClick = {},
                                 modifier = Modifier
                                     .padding(horizontal = 5.dp)
                                     .combinedClickable(
                                         onClick = {
                                             if (binder != null) {
-                                                binder.stopRadio()
-                                                binder.playRadio(
-                                                    NavigationEndpoint.Endpoint.Watch( videoId =
-                                                        if (binder.player.currentMediaItem?.mediaId != null)
-                                                            binder.player.currentMediaItem?.mediaId
-                                                        else playlistPage?.songs?.first()?.asMediaItem?.mediaId
-                                                    )
-                                                )
+                                                if (playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true) {
+                                                    binder.stopRadio()
+                                                    binder.playRadio(
+                                                      NavigationEndpoint.Endpoint.Watch( videoId = 
+                                                          if (binder.player.currentMediaItem?.mediaId != null)
+                                                              binder.player.currentMediaItem?.mediaId
+                                                          else playlistPage?.songs?.first { it.asMediaItem.mediaId !in dislikedSongs }?.asMediaItem?.mediaId))
+                                                } else {
+                                                    SmartMessage(context.resources.getString(R.string.disliked_this_collection),type = PopupType.Error, context = context)
+                                                }
                                             }
-
                                         },
                                         onLongClick = {
                                             SmartMessage(context.resources.getString(R.string.info_start_radio), context = context)
@@ -571,9 +600,9 @@ fun PlaylistSongList(
                                                             playlistPreview.songCount.minus(1) ?: 0
                                                         if (position > 0) position++ else position = 0
 
-                                                        playlistPage!!.songs?.forEachIndexed { index, song ->
+                                                        playlistPage!!.songs.forEachIndexed { index, song ->
                                                             runCatching {
-                                                                 coroutineScope.launch(Dispatchers.IO) {
+                                                                coroutineScope.launch(Dispatchers.IO) {
                                                                     Database.insert(song.asSong)
                                                                     Database.insert(
                                                                         SongPlaylistMap(
@@ -812,13 +841,19 @@ fun PlaylistSongList(
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                     },
                                     onClick = {
-                                        searching = false
-                                        filter = null
-                                        playlistPage?.songs?.map(Innertube.SongItem::asMediaItem)
-                                            ?.let { mediaItems ->
-                                                binder?.stopRadio()
-                                                binder?.player?.forcePlayAtIndex(mediaItems, index)
-                                            }
+                                        if (song.asMediaItem.mediaId !in dislikedSongs) {
+                                            searching = false
+                                            filter = null
+                                            playlistPage?.songs?.filter { it.asMediaItem.mediaId !in dislikedSongs }
+                                                ?.map(Innertube.SongItem::asMediaItem)
+                                                ?.let { mediaItems ->
+                                                    binder?.stopRadio()
+                                                    binder?.player?.forcePlayAtIndex(
+                                                        mediaItems,
+                                                        mediaItems.indexOf(song.asMediaItem)
+                                                    )
+                                                }
+                                        } else {SmartMessage(context.resources.getString(R.string.disliked_this_song),type = PopupType.Error, context = context)}
                                     }
                                 ),
                             disableScrollingText = disableScrollingText,
@@ -855,13 +890,16 @@ fun PlaylistSongList(
                 lazyListState = lazyListState,
                 iconId = R.drawable.shuffle,
                 onClick = {
-                    playlistPage?.songs?.let { songs ->
-                        if (songs.isNotEmpty()) {
-                            binder?.stopRadio()
-                            binder?.player?.forcePlayFromBeginning(
-                                songs.shuffled().map(Innertube.SongItem::asMediaItem)
-                            )
-                        }
+                    if (playlistPage?.songs?.any { it.asMediaItem.mediaId !in dislikedSongs } == true) {
+                        binder?.stopRadio()
+                        playlistPage?.songs?.filter{ it.asMediaItem.mediaId !in dislikedSongs }?.shuffled()?.map(Innertube.SongItem::asMediaItem)
+                            ?.let {
+                                binder?.player?.forcePlayFromBeginning(
+                                    it
+                                )
+                            }
+                    } else {
+                        SmartMessage(context.resources.getString(R.string.disliked_this_collection),type = PopupType.Error, context = context)
                     }
                 }
             )

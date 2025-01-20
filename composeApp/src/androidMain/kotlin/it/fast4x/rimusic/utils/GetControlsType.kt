@@ -95,7 +95,6 @@ fun GetControls(
                 likedAt = likedAt,
                 mediaId = mediaId,
                 playerPlayButtonType = playerPlayButtonType,
-                rotationAngle = rotationAngle,
                 isGradientBackgroundEnabled = isGradientBackgroundEnabled,
                 onShowSpeedPlayerDialog = { showSpeedPlayerDialog = true }
             )
@@ -107,7 +106,6 @@ fun GetControls(
                 playbackSpeed = playbackSpeed,
                 shouldBePlaying = shouldBePlaying,
                 playerPlayButtonType = playerPlayButtonType,
-                rotationAngle = rotationAngle,
                 isGradientBackgroundEnabled = isGradientBackgroundEnabled,
                 onShowSpeedPlayerDialog = { showSpeedPlayerDialog = true }
             )
